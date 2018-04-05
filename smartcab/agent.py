@@ -40,14 +40,15 @@ class LearningAgent(Agent):
         # Update epsilon using a decay function of your choice
         # Update additional class parameters as needed
         # If 'testing' is True, set epsilon and alpha to 0
-        self.times = self.times + 1
-        self.epsilon = pow(0.996,self.times)
 
-        
-        if testing == True:
+        if testing:
             self.epsilon = 0
             self.alpha = 0
-
+        else:
+            self.times = self.times + 1
+            #self.epsilon = pow(0.996,self.times)
+            #self.epsilon = (self.epsilon - 0.05) if (self.epsilon - 0.05) > 0 else 0
+            self.epsilon = math.cos(0.0015 * self.times)
         return None
 
     def build_state(self):
@@ -87,7 +88,8 @@ class LearningAgent(Agent):
                 same_maxQ.append(key)
         
         #choose an action randomly from the waiting list
-        maxQ = random.sample(same_maxQ, 1)[0]
+        #maxQ = random.sample(same_maxQ, 1)[0]
+        maxQ = random.choice(same_maxQ)
 
         return maxQ 
 
@@ -101,8 +103,11 @@ class LearningAgent(Agent):
         # When learning, check if the 'state' is not in the Q-table
         # If it is not, create a new dictionary for that state
         #   Then, for each action available, set the initial Q-value to 0.0
-        if state not in self.Q:
-            self.Q[state] ={'left':0.0, 'right':0.0, 'forward':0.0, None:0.0}
+        
+        #if state not in self.Q:
+        #    self.Q[state] ={'left':0.0, 'right':0.0, 'forward':0.0, None:0.0}
+        if self.learning:
+            self.Q.setdefault(state, {action: 0.0 for action in self.valid_actions})
 
         return
 
@@ -158,11 +163,6 @@ class LearningAgent(Agent):
         action = self.choose_action(state)  # Choose an action
         reward = self.env.act(self, action) # Receive a reward
         self.learn(state, action, reward)   # Q-learn
-        state = self.build_state()          # Get current state
-        self.createQ(state)                 # Create 'state' in Q-table
-        action = self.choose_action(state)  # Choose an action
-        reward = self.env.act(self, action) # Receive a reward
-        self.learn(state, action, reward)   # Q-learn
 
         return
         
@@ -177,7 +177,7 @@ def run():
     #   verbose     - set to True to display additional output from the simulation
     #   num_dummies - discrete number of dummy agents in the environment, default is 100
     #   grid_size   - discrete number of intersections (columns, rows), default is (8, 6)
-    env = Environment(verbose=True)
+    env = Environment()#verbose=True)
     
     ##############
     # Create the driving agent
@@ -185,7 +185,7 @@ def run():
     #   learning   - set to True to force the driving agent to use Q-learning
     #    * epsilon - continuous value for the exploration factor, default is 1
     #    * alpha   - continuous value for the learning rate, default is 0.5
-    agent = env.create_agent(LearningAgent, learning=True, epsilon=0.996, alpha = 0.5)
+    agent = env.create_agent(LearningAgent,learning=True)
     
     ##############
     # Follow the driving agent
@@ -207,7 +207,7 @@ def run():
     # Flags:
     #   tolerance  - epsilon tolerance before beginning testing, default is 0.05 
     #   n_test     - discrete number of testing trials to perform, default is 0
-    sim.run(n_test=10)
+    sim.run(tolerance=0.001, n_test=20)
 
 
 if __name__ == '__main__':
